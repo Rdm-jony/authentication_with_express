@@ -1,6 +1,6 @@
 import express, { Request, Response } from "express"
 import { User } from "../model/user_model"
-import crypto from "crypto"
+import { generateToken } from "../utils/jwt"
 export const userRoutes = express.Router()
 
 userRoutes.post("/signup", async (req: Request, res: Response): Promise<any> => {
@@ -14,7 +14,7 @@ userRoutes.post("/signup", async (req: Request, res: Response): Promise<any> => 
         }
 
         //passwod encrypt
-        newUser.hashPassMethod()
+        await newUser.hashPassMethod()
         //create verify code
         newUser.varificationMethod()
         const user = await newUser.save()
@@ -54,6 +54,15 @@ userRoutes.post("/signin", async (req: Request, res: Response): Promise<any> => 
         if (!isMatch) {
             return res.status(404).json({ success: false, message: "Invalid email or password" });
         }
+        //jwt✅
+        const token = generateToken({ id: findUser._id, email: findUser.email, role: findUser.role })
+        console.log(token)
+        res.cookie("token",token,{
+            httpOnly:true,
+            secure:process.env.NODE_ENV === "production",
+            sameSite:"strict",
+            maxAge: 60 * 60 * 1000,
+        })
 
         res.status(200).json({ success: true, message: "Successfully logged in", findUser });
     } catch (error: any) {
